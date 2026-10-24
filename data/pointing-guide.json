@@ -1,0 +1,73 @@
+{
+  "individual": {
+    "label": "Individual Event",
+    "points": {
+      "1": 5,
+      "2": 3,
+      "3": 1
+    },
+    "no_points_from_position": 4,
+    "events": [
+      "Pencil Drawing",
+      "Water Colour",
+      "Calligraphy - Eng",
+      "Calligraphy - Mal",
+      "Calligraphy - Arab",
+      "Poem Writing - Eng",
+      "Poem Writing - Mal",
+      "Story Writing - Eng",
+      "Story Writing - Mal",
+      "Essay Writing - Eng",
+      "Essay Writing - Mal",
+      "Elocution - Eng",
+      "Elocution - Mal",
+      "Quran Recitation",
+      "Recitation - Eng",
+      "Recitation - Mal",
+      "Recitation - Hindi",
+      "Mappilapattu",
+      "Madh Song",
+      "Kadha Prasangam",
+      "Maalapattu",
+      "Arabic Song"
+    ]
+  },
+  "relay": {
+    "label": "Legacy format (unused for Sargamiya 2026)",
+    "points": {
+      "1": 10,
+      "2": 6,
+      "3": 4
+    },
+    "events": []
+  },
+  "team": {
+    "label": "Group Event",
+    "points": {
+      "1": 10,
+      "2": 6,
+      "3": 4
+    },
+    "events": [
+      "Burda Recitation",
+      "Group Song - Malayalam",
+      "Group Song - English",
+      "Mappilapattu - Group",
+      "Nadanpattu",
+      "Vanchipattu",
+      "Qawali",
+      "Duff"
+    ]
+  },
+  "configurable": {},
+  "rules": {
+    "participation": 0,
+    "disqualification": 0,
+    "non_completion": 0,
+    "tie": "Award points according to the official Sargamiya 2026 result.",
+    "relay_team_credit": true,
+    "team_event_house_credit": true,
+    "overall_champion": "The house with the highest cumulative points across all Sargamiya 2026 events."
+  },
+  "official_principle": "Every art form matters. Every performance counts. Every point moves your House closer to victory."
+}

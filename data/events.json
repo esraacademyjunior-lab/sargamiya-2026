@@ -1,0 +1,600 @@
+{
+  "Senior Boys": [
+    {
+      "name": "Pencil Drawing",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Water Colour",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Eng",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Mal",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Arab",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Eng",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Mal",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Quran Recitation",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Eng",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Mal",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Hindi",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Mappilapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Madh Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Kadha Prasangam",
+      "discipline": "Performing Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Maalapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Arabic Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Group Song - Malayalam",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Group Song - English",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Burda Recitation",
+      "discipline": "Recitation",
+      "format": "team"
+    },
+    {
+      "name": "Mappilapattu - Group",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Nadanpattu",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Vanchipattu",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    },
+    {
+      "name": "Qawali",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Duff",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    }
+  ],
+  "Senior Girls": [
+    {
+      "name": "Pencil Drawing",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Water Colour",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Eng",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Mal",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Arab",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Eng",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Mal",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Quran Recitation",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Eng",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Mal",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Hindi",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Mappilapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Madh Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Kadha Prasangam",
+      "discipline": "Performing Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Maalapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Arabic Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Group Song - Malayalam",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Group Song - English",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Burda Recitation",
+      "discipline": "Recitation",
+      "format": "team"
+    },
+    {
+      "name": "Mappilapattu - Group",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Nadanpattu",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Vanchipattu",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    },
+    {
+      "name": "Qawali",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    }
+  ],
+  "Junior Boys": [
+    {
+      "name": "Pencil Drawing",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Water Colour",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Eng",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Mal",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Arab",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Eng",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Mal",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Quran Recitation",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Eng",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Mal",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Hindi",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Mappilapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Madh Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Kadha Prasangam",
+      "discipline": "Performing Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Maalapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Arabic Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Group Song - Malayalam",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Group Song - English",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Burda Recitation",
+      "discipline": "Recitation",
+      "format": "team"
+    },
+    {
+      "name": "Mappilapattu - Group",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Nadanpattu",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Vanchipattu",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    },
+    {
+      "name": "Qawali",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Duff",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    }
+  ],
+  "Junior Girls": [
+    {
+      "name": "Pencil Drawing",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Water Colour",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Eng",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Mal",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Calligraphy - Arab",
+      "discipline": "Visual Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Poem Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Story Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Eng",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Essay Writing - Mal",
+      "discipline": "Literary Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Eng",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Elocution - Mal",
+      "discipline": "Oratory",
+      "format": "individual"
+    },
+    {
+      "name": "Quran Recitation",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Eng",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Mal",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Recitation - Hindi",
+      "discipline": "Recitation",
+      "format": "individual"
+    },
+    {
+      "name": "Mappilapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Madh Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Kadha Prasangam",
+      "discipline": "Performing Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Maalapattu",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Arabic Song",
+      "discipline": "Vocal Arts",
+      "format": "individual"
+    },
+    {
+      "name": "Group Song - Malayalam",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Group Song - English",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Burda Recitation",
+      "discipline": "Recitation",
+      "format": "team"
+    },
+    {
+      "name": "Mappilapattu - Group",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Nadanpattu",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    },
+    {
+      "name": "Vanchipattu",
+      "discipline": "Group Performing Arts",
+      "format": "team"
+    },
+    {
+      "name": "Qawali",
+      "discipline": "Group Vocal Arts",
+      "format": "team"
+    }
+  ]
+}
