@@ -51,7 +51,7 @@ Set `NEXT_PUBLIC_SITE_URL` to the deployed origin for certificate QR verificatio
 
 - `public/brand/sargamiya-logo-placeholder.png` — temporary wordmark badge used in public portals
 - `public/certificates/sargamiya-logo-placeholder.png` — temporary certificate wordmark
-- The home-page hero uses `public/images/sargamiya-home-hero-canonical.webp`, aligned to the canonical NOVA design
+- Canonical mascot crops are maintained under `public/images/canonical/`; reference model sheets are retained under `public/brand/canonical/`
 - `public/brand/houses/` — retained Atlas, Titan and Olympus house logos
 
 Replace both temporary Sargamiya logo assets with the official logo when received. The approved hero artwork is applied in `app/page.tsx`; the admin page hero is separate and can be reviewed independently.
@@ -73,7 +73,7 @@ Internal database/view/function identifiers retain the `athlon_` prefix to minim
 
 The public page at `/live` now includes a three-slide auto-advancing carousel, slide indicators, previous/next controls, pause/play, animated NOVA and LUMI hero artwork, responsive layouts, live programme status, next-event details, house standings and festival notices. The carousel can be paused and respects the visitor's reduced-motion preference. The existing schedule, manual-override and house-points Supabase data flow is retained. No new SQL migration is required for this visual update.
 
-The Live carousel uses five dedicated `*-canonical.webp` scenes in `public/images/`. The home-page hero uses `sargamiya-home-hero-canonical.webp`. All six assets follow the supplied NOVA Master Character Sheet and retain LUMI’s established orange artist design.
+The Live carousel and homepage now use the same two canonical model-sheet assets in separate mascot components rather than composite scene art. This keeps NOVA’s rounded white form, blue ESRA chest emblem and floating star, and LUMI’s orange beret/hair/hoodie, star clip, brown skirt, brush and palette tied directly to the supplied model sheets. The retired composite mascot scenes have been removed to prevent them being reused accidentally.
 
 ## Judging and score consolidation
 

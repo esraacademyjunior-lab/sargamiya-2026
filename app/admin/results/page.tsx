@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 
 import {
   AlertCircle,
+  CalendarDays,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -43,6 +45,8 @@ type Event = {
   discipline: string;
   format: EventFormat;
   scoring_format: string | null;
+  /** Admin-controlled override for events whose results are formally declared. */
+  results_declared?: boolean | null;
 };
 
 type House = {
@@ -111,6 +115,18 @@ type ResultForm = {
   points: string;
   notes: string;
 };
+
+type EventProgress = {
+  resultCount: number;
+  /** Number of distinct podium positions (1st, 2nd, 3rd) with at least one result entered. */
+  podiumPositionCount: number;
+  hasTopThreePositions: boolean;
+  scheduledDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+};
+
+type EventGroupKey = "declared" | "pending" | "toConduct";
 
 /* ============================================================
    CONSTANTS
@@ -243,6 +259,56 @@ function scoreDescription(format: EventFormat) {
   return "5 · 3 · 1";
 }
 
+function eventScheduleTimestamp(date: string | null | undefined, time: string | null | undefined) {
+  if (!date || !time) return null;
+  const normalisedTime = time.length === 5 ? `${time}:00` : time.slice(0, 8);
+  const timestamp = new Date(`${date}T${normalisedTime}`).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function eventDateLabel(date: string | null | undefined) {
+  if (!date) return "Date not set";
+  const [year, month, day] = date.split("-").map(Number);
+  if (!year || !month || !day) return date;
+  return new Date(year, month - 1, day).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function eventTimeLabel(time: string | null | undefined) {
+  if (!time) return "Time not set";
+  const [hourText, minuteText] = time.slice(0, 5).split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return time.slice(0, 5);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function classifyEvent(event: Event, progress: EventProgress | undefined, now: number): EventGroupKey {
+  const resultCount = progress?.resultCount ?? 0;
+
+  // Admins may explicitly declare an event (including events that do not use a standard podium).
+  // Otherwise, the event is declared automatically once 1st, 2nd, and 3rd are all present.
+  if (event.results_declared || progress?.hasTopThreePositions) return "declared";
+
+  // Any partial result entry, including only one or two podium positions, remains pending.
+  if (resultCount > 0) return "pending";
+
+  const scheduledEnd = eventScheduleTimestamp(
+    progress?.scheduledDate,
+    progress?.endTime ?? progress?.startTime
+  );
+
+  // If the scheduled slot has ended with no result rows, flag the event for results.
+  if (scheduledEnd !== null && scheduledEnd < now) return "pending";
+
+  // Future, currently running, unscheduled, or incompletely scheduled events remain in this list.
+  return "toConduct";
+}
+
 /* ============================================================
    PAGE
 ============================================================ */
@@ -256,6 +322,10 @@ export default function ResultsPage() {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [houses, setHouses] = useState<House[]>([]);
+  const [eventProgress, setEventProgress] = useState<Record<string, EventProgress>>({});
+  const [eventProgressError, setEventProgressError] = useState<string | null>(null);
+  const [classificationNow, setClassificationNow] = useState(() => Date.now());
+  const [declaringEventId, setDeclaringEventId] = useState<string | null>(null);
 
   const [selectedEvent, setSelectedEvent] =
     useState<Event | null>(null);
@@ -350,84 +420,88 @@ export default function ResultsPage() {
     setError(null);
 
     try {
-      /*
-       * IMPORTANT:
-       *
-       * Do NOT query is_active.
-       * The current events table does not expose
-       * that column.
-       */
+      const [eventsResponse, housesResponse] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id,category,name,slug,discipline,format,scoring_format,results_declared")
+          .eq("is_active", true)
+          .order("category", { ascending: true })
+          .order("name", { ascending: true }),
+        supabase
+          .from("houses")
+          .select("id,name")
+          .order("name", { ascending: true }),
+      ]);
 
-      const [eventsResponse, housesResponse] =
-        await Promise.all([
-          supabase
-            .from("events")
-            .select(
-              `
-                id,
-                category,
-                name,
-                slug,
-                discipline,
-                format,
-                scoring_format
-              `
-            )
-            .eq("is_active", true)
-            .order("category", {
-              ascending: true,
-            })
-            .order("name", {
-              ascending: true,
-            }),
+      if (eventsResponse.error) throw new Error(eventsResponse.error.message);
+      if (housesResponse.error) throw new Error(housesResponse.error.message);
 
-          supabase
-            .from("houses")
-            .select(
-              `
-                id,
-                name
-              `
-            )
-            .order("name", {
-              ascending: true,
-            }),
-        ]);
+      const loadedEvents = (eventsResponse.data ?? []) as Event[];
+      setEvents(loadedEvents);
+      setHouses((housesResponse.data ?? []) as House[]);
 
-      if (eventsResponse.error) {
-        throw new Error(
-          eventsResponse.error.message
-        );
-      }
-
-      if (housesResponse.error) {
-        throw new Error(
-          housesResponse.error.message
-        );
-      }
-
-      setEvents(
-        (eventsResponse.data ?? []) as Event[]
-      );
-
-      setHouses(
-        (housesResponse.data ?? []) as House[]
-      );
+      await loadEventProgress(loadedEvents);
     } catch (err) {
-      console.error(
-        "RESULT EVENTS LOAD ERROR:",
-        err
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load events."
-      );
+      console.error("RESULT EVENTS LOAD ERROR:", err);
+      setError(err instanceof Error ? err.message : "Unable to load events.");
     } finally {
       setLoadingEvents(false);
     }
   }
+
+  async function loadEventProgress(eventRows: Event[]) {
+    setEventProgressError(null);
+    if (eventRows.length === 0) {
+      setEventProgress({});
+      return;
+    }
+
+    const [resultsResponse, scheduleResponse] = await Promise.all([
+      supabase.from("results").select("id,event_id,position"),
+      supabase.from("event_schedule").select("event_id,scheduled_date,start_time,end_time"),
+    ]);
+
+    const queryError = resultsResponse.error ?? scheduleResponse.error;
+    if (queryError) {
+      setEventProgressError(queryError.message);
+      return;
+    }
+
+    const resultCounts: Record<string, number> = {};
+    const podiumPositions: Record<string, Set<number>> = {};
+    const schedules: Record<string, { scheduled_date: string | null; start_time: string | null; end_time: string | null }> = {};
+
+    for (const row of (resultsResponse.data ?? []) as Array<{ id: string; event_id: string; position: number | null }>) {
+      resultCounts[row.event_id] = (resultCounts[row.event_id] ?? 0) + 1;
+      if (row.position === 1 || row.position === 2 || row.position === 3) {
+        if (!podiumPositions[row.event_id]) podiumPositions[row.event_id] = new Set<number>();
+        podiumPositions[row.event_id].add(row.position);
+      }
+    }
+    for (const row of (scheduleResponse.data ?? []) as Array<{ event_id: string; scheduled_date: string | null; start_time: string | null; end_time: string | null }>) {
+      schedules[row.event_id] = row;
+    }
+
+    const next: Record<string, EventProgress> = {};
+    for (const event of eventRows) {
+      const positionsEntered = podiumPositions[event.id] ?? new Set<number>();
+      const podiumPositionCount = positionsEntered.size;
+      next[event.id] = {
+        resultCount: resultCounts[event.id] ?? 0,
+        podiumPositionCount,
+        hasTopThreePositions: positionsEntered.has(1) && positionsEntered.has(2) && positionsEntered.has(3),
+        scheduledDate: schedules[event.id]?.scheduled_date ?? null,
+        startTime: schedules[event.id]?.start_time ?? null,
+        endTime: schedules[event.id]?.end_time ?? null,
+      };
+    }
+    setEventProgress(next);
+  }
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClassificationNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   /* ==========================================================
      FILTERED EVENTS
@@ -470,6 +544,32 @@ export default function ResultsPage() {
     categoryFilter,
     formatFilter,
   ]);
+
+  const eventGroups = useMemo(() => {
+    const groups: Record<EventGroupKey, Event[]> = {
+      declared: [],
+      pending: [],
+      toConduct: [],
+    };
+
+    for (const event of filteredEvents) {
+      groups[classifyEvent(event, eventProgress[event.id], classificationNow)].push(event);
+    }
+
+    const byScheduledTime = (a: Event, b: Event) => {
+      const left = eventScheduleTimestamp(eventProgress[a.id]?.scheduledDate, eventProgress[a.id]?.startTime);
+      const right = eventScheduleTimestamp(eventProgress[b.id]?.scheduledDate, eventProgress[b.id]?.startTime);
+      if (left === null && right === null) return a.name.localeCompare(b.name);
+      if (left === null) return 1;
+      if (right === null) return -1;
+      return left - right;
+    };
+
+    groups.declared.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+    groups.pending.sort(byScheduledTime);
+    groups.toConduct.sort(byScheduledTime);
+    return groups;
+  }, [filteredEvents, eventProgress, classificationNow]);
 
   const categories = useMemo(() => {
     return Array.from(
@@ -1256,6 +1356,7 @@ export default function ResultsPage() {
       );
 
       await reloadResults();
+      await loadEventProgress(events);
 
       setMessage(
         existing
@@ -1373,6 +1474,7 @@ export default function ResultsPage() {
       setEditingKey(null);
 
       await reloadResults();
+      await loadEventProgress(events);
 
       setMessage(
         "Result deleted successfully."
@@ -1390,6 +1492,48 @@ export default function ResultsPage() {
       );
     } finally {
       setSavingKey(null);
+    }
+  }
+
+  async function updateEventDeclaration(event: Event, declared: boolean) {
+    if (declaringEventId) return;
+
+    setDeclaringEventId(event.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const { data: updatedEvent, error: updateError } = await supabase
+        .from("events")
+        .update({ results_declared: declared })
+        .eq("id", event.id)
+        .select("id,results_declared")
+        .maybeSingle();
+
+      if (updateError) {
+        if (/results_declared|column/i.test(updateError.message)) {
+          throw new Error("The result-declaration field is not set up yet. Run supabase/result-declaration.sql in the Supabase SQL Editor, then refresh this page.");
+        }
+        if (/permission|policy|row-level security/i.test(updateError.message)) {
+          throw new Error("Supabase blocked this change. Confirm the result-declaration migration has been run and the signed-in admin has permission to update event declarations.");
+        }
+        throw new Error(updateError.message);
+      }
+      if (!updatedEvent) {
+        throw new Error("Supabase did not update this event. Check the migration and the signed-in admin's event-update permissions, then try again.");
+      }
+
+      setEvents((current) => current.map((row) =>
+        row.id === event.id ? { ...row, results_declared: declared } : row
+      ));
+      setMessage(declared
+        ? `${event.name} has been marked as declared.`
+        : `Manual declaration removed for ${event.name}. Its status has been recalculated.`);
+    } catch (err) {
+      console.error("EVENT RESULT DECLARATION ERROR:", err);
+      setError(err instanceof Error ? err.message : "Unable to update the event declaration.");
+    } finally {
+      setDeclaringEventId(null);
     }
   }
 
@@ -1446,6 +1590,80 @@ export default function ResultsPage() {
       .filter(
         Boolean
       ) as Student[];
+  }
+
+  function renderEventCard(event: Event, groupKey: EventGroupKey) {
+    const selected = selectedEvent?.id === event.id;
+    const progress = eventProgress[event.id];
+    const groupLabel = groupKey === "declared" ? "Declared" : groupKey === "pending" ? "Pending" : "To be conducted";
+    let progressText = "Not scheduled yet";
+    if (groupKey === "declared") {
+      progressText = event.results_declared
+        ? "Declared manually by an administrator"
+        : "Declared · 1st, 2nd & 3rd entered";
+    } else if (groupKey === "pending") {
+      if ((progress?.resultCount ?? 0) > 0) {
+        progressText = `Podium positions: ${progress?.podiumPositionCount ?? 0} / 3 · Results entered: ${progress?.resultCount ?? 0}`;
+      } else {
+        progressText = "Scheduled event ended · results awaited";
+      }
+    } else if (progress?.scheduledDate) {
+      progressText = `${eventDateLabel(progress.scheduledDate)} · ${eventTimeLabel(progress.startTime)}`;
+    }
+
+    const isSavingDeclaration = declaringEventId === event.id;
+    const canUndoManualDeclaration = groupKey === "declared" && Boolean(event.results_declared);
+    const canManuallyDeclare = groupKey !== "declared";
+
+    return (
+      <div
+        key={event.id}
+        className={`eventCard ${selected ? "selected" : ""} eventCard-${groupKey} ${event.results_declared ? "eventCard-manualDeclared" : ""}`}
+      >
+        <button
+          type="button"
+          className="eventCardMain"
+          aria-label={`Open results for ${event.name}`}
+          onClick={() => void selectEvent(event)}
+        >
+          <div className="eventCardArrow"><ChevronRight size={14} /></div>
+          <div className="eventCardTopline">
+            <span className="eventBadge">{event.category}</span>
+            <span className={`eventStateBadge eventState-${groupKey}`}>{groupLabel}</span>
+          </div>
+          <div className="eventName">{event.name}</div>
+          <div className="eventMeta">{event.discipline} · {formatLabel(event.scoring_format ?? event.format)}</div>
+          <div className={`eventProgressText eventProgress-${groupKey}`}>{progressText}</div>
+        </button>
+        {(canManuallyDeclare || canUndoManualDeclaration) && (
+          <div className="eventCardActions">
+            {canManuallyDeclare ? (
+              <button
+                type="button"
+                className="declareResultButton"
+                disabled={isSavingDeclaration || declaringEventId !== null}
+                onClick={() => void updateEventDeclaration(event, true)}
+                aria-label={`Mark ${event.name} as declared result`}
+              >
+                {isSavingDeclaration ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                {isSavingDeclaration ? "Saving…" : "Mark as Declared Result"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="declareResultButton undoDeclareButton"
+                disabled={isSavingDeclaration || declaringEventId !== null}
+                onClick={() => void updateEventDeclaration(event, false)}
+                aria-label={`Undo manual declaration for ${event.name}`}
+              >
+                {isSavingDeclaration ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={13} />}
+                {isSavingDeclaration ? "Saving…" : "Undo Declaration"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   /* ==========================================================
@@ -1717,7 +1935,7 @@ export default function ResultsPage() {
           background: white;
           color: #0b1f41;
           text-align: left;
-          cursor: pointer;
+          cursor: default;
           transition:
             border-color 150ms ease,
             box-shadow 150ms ease,
@@ -1752,6 +1970,76 @@ export default function ResultsPage() {
         .eventCard.selected .eventCardArrow {
           background: #0b1f41;
           color: white;
+        }
+
+        .eventCardMain {
+          position: relative;
+          display: block;
+          width: 100%;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          text-align: left;
+          cursor: pointer;
+        }
+
+        .eventCardMain:focus-visible {
+          outline: 3px solid rgba(23, 101, 177, .28);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+
+        .eventCardActions {
+          display: flex;
+          align-items: center;
+          margin-top: 14px;
+          padding-top: 11px;
+          border-top: 1px solid #edf1f6;
+        }
+
+        .declareResultButton {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          min-height: 33px;
+          max-width: 100%;
+          padding: 7px 10px;
+          border: 1px solid #bde7cc;
+          border-radius: 8px;
+          background: #effaf3;
+          color: #147443;
+          font-size: 10px;
+          line-height: 1.2;
+          font-weight: 850;
+          cursor: pointer;
+          transition: background 140ms ease, border-color 140ms ease;
+        }
+
+        .declareResultButton:hover:not(:disabled) {
+          border-color: #8bd0a5;
+          background: #e2f7e9;
+        }
+
+        .declareResultButton:disabled {
+          cursor: wait;
+          opacity: .65;
+        }
+
+        .undoDeclareButton {
+          border-color: #e3d8f3;
+          background: #f8f4fd;
+          color: #6f48a5;
+        }
+
+        .undoDeclareButton:hover:not(:disabled) {
+          border-color: #cbb5eb;
+          background: #f1e9fb;
+        }
+
+        .eventCard-manualDeclared {
+          background: linear-gradient(180deg, #ffffff 0%, #f7fcf8 100%);
         }
 
         .eventBadge {
@@ -1798,6 +2086,165 @@ export default function ResultsPage() {
           color: #8795a8;
           text-align: center;
         }
+
+        .eventStatusSections {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .eventStatusSection {
+          padding: 18px 22px 22px;
+          border-bottom: 1px solid #e8edf3;
+        }
+
+        .eventStatusSection:last-child {
+          border-bottom: 0;
+        }
+
+        .eventStatusHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 0 0 12px;
+        }
+
+        .eventStatusHeading {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          min-width: 0;
+        }
+
+        .eventStatusIcon {
+          display: grid;
+          place-items: center;
+          width: 38px;
+          height: 38px;
+          flex: 0 0 auto;
+          border-radius: 10px;
+          background: #edf9f2;
+          color: #16834c;
+        }
+
+        .eventStatusSection.pending .eventStatusIcon {
+          background: #fff5e8;
+          color: #b66b10;
+        }
+
+        .eventStatusSection.toConduct .eventStatusIcon {
+          background: #edf5ff;
+          color: #1765b1;
+        }
+
+        .eventStatusTitle {
+          margin: 0;
+          color: #0b1f41;
+          font-size: 15px;
+          font-weight: 900;
+        }
+
+        .eventStatusDescription {
+          margin-top: 4px;
+          color: #8190a4;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .eventStatusCount {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 36px;
+          height: 32px;
+          padding: 0 10px;
+          border: 1px solid #cbe9d7;
+          border-radius: 9px;
+          background: #f1fbf5;
+          color: #147443;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .eventStatusSection.pending .eventStatusCount {
+          border-color: #f0d5ad;
+          background: #fff8ee;
+          color: #a7630d;
+        }
+
+        .eventStatusSection.toConduct .eventStatusCount {
+          border-color: #cfe0f4;
+          background: #f4f8ff;
+          color: #205f9c;
+        }
+
+        .eventGroupGrid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .eventCardTopline {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          padding-right: 24px;
+        }
+
+        .eventStateBadge {
+          display: inline-flex;
+          padding: 5px 7px;
+          border-radius: 999px;
+          background: #edf9f2;
+          color: #147443;
+          font-size: 8px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .045em;
+        }
+
+        .eventState-pending {
+          background: #fff4e4;
+          color: #a7630d;
+        }
+
+        .eventState-toConduct {
+          background: #edf5ff;
+          color: #205f9c;
+        }
+
+        .eventProgressText {
+          margin-top: 10px;
+          color: #147443;
+          font-size: 10px;
+          line-height: 1.35;
+          font-weight: 800;
+        }
+
+        .eventProgress-pending {
+          color: #a7630d;
+        }
+
+        .eventProgress-toConduct {
+          color: #205f9c;
+        }
+
+        .eventGroupEmpty {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 16px;
+          border: 1px dashed #d9e2ed;
+          border-radius: 11px;
+          color: #8492a6;
+          background: #fcfdff;
+          font-size: 12px;
+        }
+
+        .eventCard-declared { border-color: #d5e9dd; }
+        .eventCard-pending { border-color: #f0dfc3; }
+        .eventCard-toConduct { border-color: #d8e5f4; }
 
         .workspace {
           margin-top: 20px;
@@ -2253,6 +2700,10 @@ export default function ResultsPage() {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
+          .eventGroupGrid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
           .eventToolbar {
             grid-template-columns: 1fr 150px 150px auto;
           }
@@ -2268,6 +2719,10 @@ export default function ResultsPage() {
           }
 
           .eventGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .eventGroupGrid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -2304,7 +2759,8 @@ export default function ResultsPage() {
         }
 
         @media (max-width: 560px) {
-          .eventGrid {
+          .eventGrid,
+          .eventGroupGrid {
             grid-template-columns: 1fr;
           }
 
@@ -2434,195 +2890,111 @@ export default function ResultsPage() {
           <section className="eventPanel">
             <div className="eventPanelHeader">
               <div>
-                <h2 className="eventPanelTitle">
-                  Select Event
-                </h2>
-
+                <h2 className="eventPanelTitle">Event Results Overview</h2>
                 <p className="eventPanelSubtitle">
-                  Choose an event to enter
-                  or manage its official
-                  results.
+                  Events are grouped by result completion and schedule timing. Select any event to enter, update or review its results.
                 </p>
               </div>
-
-              <div className="infoBadge">
-                {filteredEvents.length}{" "}
-                event
-                {filteredEvents.length !==
-                1
-                  ? "s"
-                  : ""}
-              </div>
+              <div className="infoBadge">{filteredEvents.length} events</div>
             </div>
 
             <div className="eventToolbar">
-
               <div className="searchBox">
                 <Search size={16} />
-
                 <input
                   className="controlInput"
                   value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search events..."
                 />
               </div>
 
-              <select
-                className="controlSelect"
-                value={categoryFilter}
-                onChange={(event) =>
-                  setCategoryFilter(
-                    event.target.value
-                  )
-                }
-              >
-                <option value="all">
-                  All Categories
-                </option>
-
-                {categories.map(
-                  (category) => (
-                    <option
-                      key={category}
-                      value={category}
-                    >
-                      {category}
-                    </option>
-                  )
-                )}
+              <select className="controlSelect" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+                <option value="all">All Categories</option>
+                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
               </select>
 
-              <select
-                className="controlSelect"
-                value={formatFilter}
-                onChange={(event) =>
-                  setFormatFilter(
-                    event.target.value
-                  )
-                }
-              >
-                <option value="all">
-                  All Formats
-                </option>
-
-                {formats.map(
-                  (format) => (
-                    <option
-                      key={format}
-                      value={format}
-                    >
-                      {formatLabel(
-                        format
-                      )}
-                    </option>
-                  )
-                )}
+              <select className="controlSelect" value={formatFilter} onChange={(event) => setFormatFilter(event.target.value)}>
+                <option value="all">All Formats</option>
+                {formats.map((format) => <option key={format} value={format}>{formatLabel(format)}</option>)}
               </select>
 
-              <button
-                type="button"
-                className="resetButton"
-                onClick={
-                  resetFilters
-                }
-              >
-                Reset
-              </button>
+              <button type="button" className="resetButton" onClick={resetFilters}>Reset</button>
             </div>
 
             {loadingEvents ? (
               <div className="loadingWorkspace">
-                <Loader2
-                  size={20}
-                  className="animate-spin"
-                />
-                Loading events...
+                <Loader2 size={20} className="animate-spin" />
+                Loading events and result status...
               </div>
-            ) : filteredEvents.length ===
-              0 ? (
+            ) : eventProgressError ? (
               <div className="emptyEvents">
-                <Search
-                  size={24}
-                  style={{
-                    margin: "0 auto",
-                    opacity: 0.45,
-                  }}
-                />
-
-                <div
-                  style={{
-                    marginTop: 10,
-                    fontWeight: 800,
-                  }}
-                >
-                  No events found
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 11,
-                  }}
-                >
-                  Try changing your search
-                  or filters.
-                </div>
+                <AlertCircle size={24} style={{ margin: "0 auto", opacity: 0.65, color: "#b66b10" }} />
+                <div style={{ marginTop: 10, fontWeight: 800 }}>Event status could not be calculated</div>
+                <div style={{ marginTop: 4, fontSize: 11 }}>Check access to results, registrations, event teams and schedule data, then refresh.</div>
+                <div style={{ marginTop: 8, fontSize: 10 }}>{eventProgressError}</div>
+              </div>
+            ) : filteredEvents.length === 0 ? (
+              <div className="emptyEvents">
+                <Search size={24} style={{ margin: "0 auto", opacity: 0.45 }} />
+                <div style={{ marginTop: 10, fontWeight: 800 }}>No events found</div>
+                <div style={{ marginTop: 4, fontSize: 11 }}>Try changing your search or filters.</div>
               </div>
             ) : (
-              <div className="eventGrid">
-                {filteredEvents.map(
-                  (event) => {
-                    const selected =
-                      selectedEvent?.id ===
-                      event.id;
+              <div className="eventStatusSections">
+                <section className="eventStatusSection declared" aria-labelledby="declared-results-heading">
+                  <div className="eventStatusHeader">
+                    <div className="eventStatusHeading">
+                      <div className="eventStatusIcon"><CheckCircle2 size={18} /></div>
+                      <div>
+                        <h3 className="eventStatusTitle" id="declared-results-heading">Declared Results</h3>
+                        <div className="eventStatusDescription">Declared manually by an administrator, or with 1st, 2nd and 3rd positions entered.</div>
+                      </div>
+                    </div>
+                    <div className="eventStatusCount">{eventGroups.declared.length}</div>
+                  </div>
+                  {eventGroups.declared.length ? (
+                    <div className="eventGroupGrid">{eventGroups.declared.map((event) => renderEventCard(event, "declared"))}</div>
+                  ) : (
+                    <div className="eventGroupEmpty"><CheckCircle2 size={16} /> No events have complete result entries yet.</div>
+                  )}
+                </section>
 
-                    return (
-                      <button
-                        type="button"
-                        key={event.id}
-                        className={`eventCard ${
-                          selected
-                            ? "selected"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          void selectEvent(
-                            event
-                          )
-                        }
-                      >
-                        <div className="eventCardArrow">
-                          <ChevronRight
-                            size={14}
-                          />
-                        </div>
+                <section className="eventStatusSection pending" aria-labelledby="pending-results-heading">
+                  <div className="eventStatusHeader">
+                    <div className="eventStatusHeading">
+                      <div className="eventStatusIcon"><AlertCircle size={18} /></div>
+                      <div>
+                        <h3 className="eventStatusTitle" id="pending-results-heading">Pending Results</h3>
+                        <div className="eventStatusDescription">Events that have ended without results, or have incomplete result entries.</div>
+                      </div>
+                    </div>
+                    <div className="eventStatusCount">{eventGroups.pending.length}</div>
+                  </div>
+                  {eventGroups.pending.length ? (
+                    <div className="eventGroupGrid">{eventGroups.pending.map((event) => renderEventCard(event, "pending"))}</div>
+                  ) : (
+                    <div className="eventGroupEmpty"><ClipboardList size={16} /> No pending results. All completed events are up to date.</div>
+                  )}
+                </section>
 
-                        <span className="eventBadge">
-                          {event.category}
-                        </span>
-
-                        <div className="eventName">
-                          {event.name}
-                        </div>
-
-                        <div className="eventMeta">
-                          {event.discipline}
-                        </div>
-
-                        <span className="eventType">
-                          {formatLabel(
-                            event.format
-                          )}
-                        </span>
-                      </button>
-                    );
-                  }
-                )}
+                <section className="eventStatusSection toConduct" aria-labelledby="to-be-conducted-heading">
+                  <div className="eventStatusHeader">
+                    <div className="eventStatusHeading">
+                      <div className="eventStatusIcon"><CalendarDays size={18} /></div>
+                      <div>
+                        <h3 className="eventStatusTitle" id="to-be-conducted-heading">To Be Conducted</h3>
+                        <div className="eventStatusDescription">Upcoming, currently running, or not-yet-scheduled events without results.</div>
+                      </div>
+                    </div>
+                    <div className="eventStatusCount">{eventGroups.toConduct.length}</div>
+                  </div>
+                  {eventGroups.toConduct.length ? (
+                    <div className="eventGroupGrid">{eventGroups.toConduct.map((event) => renderEventCard(event, "toConduct"))}</div>
+                  ) : (
+                    <div className="eventGroupEmpty"><CalendarDays size={16} /> No events remain in this category.</div>
+                  )}
+                </section>
               </div>
             )}
           </section>

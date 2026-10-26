@@ -6,13 +6,14 @@ Create a **dedicated Supabase project** for Sargamiya 2026, then run these SQL f
 2. `results-and-points.sql` — result validation, automatic scoring and the auditable house-points ledger.
 3. `live-dashboard.sql` — aggregate live house standings and dashboard summary.
 4. `public-results.sql` — public-safe official results and event catalogue.
-5. `public-schedule.sql` — public schedule and authenticated schedule management.
-6. `analytics.sql` — house, event and student performance analytics.
-7. `registration-rls.sql`, `students-rls-for-auth.sql`, `admin-rls.sql` — authenticated access policies.
-8. `team-management.sql` — group-event rosters and registration validation.
-9. `certificates.sql` — certificate issuance, revocation and public-safe verification views.
-10. `event-catalogue-corrections.sql` — corrects Burda Recitation format and deactivates Duff under girls categories for existing projects.
-11. `event-judging.sql` — adds secure judgement-score storage for three judges and five scoring indicators per participant/team.
+5. `public-results-status-and-student-leaders.sql` — public result-status groups, declared-only placements, and the view data required by `/results`.
+6. `public-schedule.sql` — public schedule and authenticated schedule management.
+7. `analytics.sql` — house, event and student performance analytics.
+8. `registration-rls.sql`, `students-rls-for-auth.sql`, `admin-rls.sql` — authenticated access policies.
+9. `team-management.sql` — group-event rosters and registration validation.
+10. `certificates.sql` — certificate issuance, revocation and public-safe verification views.
+11. `event-catalogue-corrections.sql` — corrects Burda Recitation format and deactivates Duff under girls categories for existing projects.
+12. `event-judging.sql` — adds secure judgement-score storage for three judges and five scoring indicators per participant/team.
 
 The seed creates **30 events in each boys category and 29 in each girls category**, for **118 category-specific event records**. Burda Recitation is a group event, and Duff is available only to boys categories. Individual events use 5–3–1 scoring; group events use 10–6–4. The event format and point values can be reviewed and adjusted before launch.
 
@@ -49,3 +50,8 @@ For group-format events, active event teams from **Admin → Group Rosters** are
 ## Sargamiya Live status override
 
 Run `live-status-override.sql` after `schema.sql` and `public-schedule.sql`. This creates the singleton live-control row used by `/live` and `/admin/live`. The public page calculates status from scheduled date/time by default; an authenticated admin can publish a manual event/status/message and restore automatic mode when the disruption is over.
+
+
+## Public results portal
+
+The `/results` route is a read-only public portal. Run `public-results-status-and-student-leaders.sql` after `public-results.sql` to create the public-safe views used to group events into Results Declared, Results Pending and Events to Be Conducted. The page publishes official placements only for declared events and computes each category leaderboard from points earned in declared individual events. The admin entry workspace remains at `/admin/results`.

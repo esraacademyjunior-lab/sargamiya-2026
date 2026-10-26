@@ -1,0 +1,12 @@
+SARGAMIYA LIVE ANIMATED UI PATCH
+
+Copy the contents of this ZIP into the root of your existing Sargamiya Next.js project and allow the updated files to replace their current versions.
+Files included:
+- app/live/page.tsx (new animated carousel + live page layout)
+- app/globals.css (new styles and animations appended; existing styles retained)
+- public/brand/sargamiya-logo.png
+- public/images/sargamiya-home-hero.png
+- public/images/sargamiya-nova-lumi-hero.png
+
+No Supabase migration is required for this visual change. Keep your current .env.local file.
+Restart the dev server after copying the files. Open http://localhost:3000/live.
